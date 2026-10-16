@@ -136,7 +136,30 @@ travel-ai-lab/
 
 **Python · uv** / FastAPI · Pydantic / PostgreSQL · pgvector / LLM API (structured output · streaming · tool calling) / sentence-transformers / pytest · Ruff · Pyright / Docker · GitHub Actions / OpenTelemetry
 
-> 위 스택은 출발점이며, 실험 결과에 따라 Elasticsearch, LangGraph, MCP 등을 비교·도입합니다.
+### 기술 지도 (요약)
+
+같은 역할을 하는 기술끼리 묶었습니다. **굵게** 표시한 것이 이 Lab의 출발점이고, 나머지는 비교 후보이거나 알아둘 대안입니다.
+전체 목록과 각 칸의 설명은 **[docs/tech-landscape.md](docs/tech-landscape.md)** 에 있습니다.
+
+| 층위 | 개념 | 이 Lab의 선택 → 비슷한 기술 |
+| --- | --- | --- |
+| 모델 | LLM 호출 · 라우팅 | **상용 API + 직접 구현 Provider** → LiteLLM · OpenRouter |
+| 모델 | 로컬 · 서빙 | Ollama → vLLM · SGLang · TGI |
+| 검색 | 키워드 (BM25) | **PostgreSQL FTS** → Elasticsearch/OpenSearch(nori) · Kiwi |
+| 검색 | 임베딩 | **상용 API · bge-m3 · KURE** → multilingual-e5 · Cohere · Voyage |
+| 검색 | 벡터 저장 | **pgvector** → Qdrant · Milvus · Weaviate · Chroma · Pinecone · FAISS |
+| 검색 | 리랭킹 | **cross-encoder** → Cohere Rerank · ColBERT |
+| 생성 | RAG · Agent 구성 | **직접 구현 loop** → LangGraph · LlamaIndex · LangChain · PydanticAI |
+| 생성 | 도구 연결 | **function calling** → MCP |
+| 생성 | 구조화 출력 | **Pydantic + structured output** → Instructor · Outlines |
+| 평가 | RAG 평가 | **직접 구현 runner · judge** → Ragas · DeepEval · promptfoo |
+| 운영 | 로깅 · 트레이싱 | **JSONL · OpenTelemetry** → Langfuse · LangSmith · Arize Phoenix |
+| 운영 | 실험 추적 | **실험 노트 + CSV** → MLflow · Weights & Biases |
+| 안전 | 가드레일 | **직접 구현 규칙** → Guardrails AI · NeMo Guardrails · Llama Guard |
+| 데이터 | 파이프라인 | **GitHub Actions 스케줄** → Airflow · Prefect · Dagster |
+| 앱 | UI | **Streamlit** → Gradio · Chainlit · Next.js + Vercel AI SDK |
+
+> 프레임워크를 먼저 쓰지 않고 직접 구현하는 이유: 각 부품이 무엇을 하는지 이해한 뒤, **같은 평가셋에서 프레임워크와 비교해** 도입 여부를 숫자로 결정하기 위해서입니다.
 
 ## 시작하기
 

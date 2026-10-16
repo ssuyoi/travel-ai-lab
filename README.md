@@ -48,7 +48,7 @@ flowchart LR
 
 모든 단계는 **교체 가능한 인터페이스**로 분리해, 한 부분만 바꿔 끼우고 같은 평가셋으로 비교합니다.
 
-| 컴포넌트 | 인터페이스 | 바꿔 끼우며 비교할 후보 |
+| 컴포넌트 | 인터페이스 | 비교 구현체 (Variants) |
 | --- | --- | --- |
 | Chunker | `chunk(doc) -> list[Chunk]` | 고정 길이 · 문단 · 필드 기반(제목+주소+개요) |
 | Embedder | `embed(texts) -> vectors` | 상용 API · bge-m3 · KURE |

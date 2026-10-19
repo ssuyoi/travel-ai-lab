@@ -40,6 +40,8 @@ flowchart LR
     end
     subgraph Eval["④ Eval & Ops"]
         L["호출 로그<br/>JSONL · Trace"] --> E["Eval Runner<br/>golden set · judge"]
+        E --> CON["Lab Console<br/>프롬프트·데이터셋·평가 비교"]
+        CON -. "버전 채택" .-> G
     end
     C --> S
     C --> SQL
@@ -79,6 +81,32 @@ flowchart LR
 
 ---
 
+## Lab Console (LLMOps 도구)
+
+위 평가 체계를 **직접 다루는 사내 도구**입니다. 프롬프트·데이터셋·평가 결과를 버전으로 관리하고, 버전끼리 지표를 비교해 채택 여부를 결정합니다.
+『LLMOps를 활용한 LLM 엔지니어링』(박슬기, 위키북스)의 LLMOps 도구 구성을 참고하되, 프레임워크 없이 Lab의 인터페이스 위에 만듭니다.
+
+| 버전 | 기능 | 쓰이는 단계 |
+| --- | --- | --- |
+| **v1** | Playground(모델·프롬프트 즉시 호출) · 프롬프트 버저닝 · 데이터셋 관리 · 평가 실행 · 버전별 지표 비교 | 0.5 이후 |
+| **v2** | 검색 지표(Recall@k · nDCG) · 합성 데이터셋 생성 → 사람 검수 | 2. 검색 |
+| **v2.5** | RAG 평가자(faithfulness · context precision) · 토큰·지연·비용 분석 | 3. RAG |
+| **v3** | Agent trace 조회 · 운영 모니터링 · injection 탐지 로그 | 4–5 |
+
+**저장소는 PostgreSQL** — 서비스 데이터와 같은 DB에 `ops` 스키마를 따로 둡니다.
+
+| 테이블 | 담는 것 |
+| --- | --- |
+| `prompts` · `prompt_versions` | 프롬프트 이름, 버전별 템플릿·파라미터·작성 메모 |
+| `datasets` · `dataset_items` | 평가셋 버전, 문항(질문 · 정답 문서 ID · 기대 답변 · 유형 · 출처: 수작업/합성) |
+| `eval_runs` | 한 번의 평가 실행 + **run manifest**(프롬프트·데이터셋·인덱스·임베딩·모델 버전, git commit) |
+| `eval_results` | 문항별 출력 · 지표 점수 · 토큰 · 지연 · 비용 · 실패 태그 |
+
+> run manifest가 있어야 "이 점수가 어떤 조합에서 나왔는가"를 언제든 재현할 수 있습니다.
+> 직접 만든 뒤에는 같은 기능을 Langfuse 등 실무 도구와 비교해 실험 노트로 남깁니다.
+
+---
+
 ## 실험 기록
 
 모든 실험은 같은 형식으로 남기고(`docs/experiments/`), 채택한 결정은 ADR로 정리합니다(`docs/adr/`).
@@ -104,12 +132,13 @@ Question   →  Hypothesis  →  Variants (A vs B)  →  Fixed (dataset·model·
 
 | 단계 | 핵심 질문 | 만드는 것 | 측정 기반 |
 | --- | --- | --- | --- |
-| **0. 기초** | 어떻게 재고, 어떻게 비교하나 | 측정 모듈 `bench.py` · 관측 가능한 LLM 호출 래퍼 · eval runner | latency 분포 · pass^k · 신뢰구간 |
-| **1. 데이터** | 믿을 수 있는 지식베이스인가 | 스키마 · 수집·정규화 파이프라인 · `/ask` 뼈대 | 품질 규칙 실패율 · 멱등성 |
-| **2. 검색** | Q1 | BM25 → 벡터 → 하이브리드 · 리랭킹 · golden set | Recall@k · MRR · nDCG · 검색 지연 |
-| **3. RAG·앱** | Q2 · Q3 | 인용형 QA API · 스트리밍 UI · SQL 라우팅 · 배포 | Faithfulness · Citation · TTFT |
+| **0. 기초** | 어떻게 재고, 어떻게 비교하나 | 측정 모듈 `bench.py` · 관측 가능한 LLM 호출 래퍼 | latency 분포 (p50 · p95) |
+| **0.5 단순 RAG** | 일단 끝까지 돌아가는가 | 장소 100개 · 임베딩 · 코사인 top-5 · LLM 답변 — 이후 모든 실험의 **기준선** | 직접 질문 20개로 눈 평가 |
+| **1. 데이터 · Console v1** | 믿을 수 있는 지식베이스인가 · 변경을 비교할 수 있는가 | 스키마 · 수집·정규화 파이프라인 · **Lab Console v1** (프롬프트·데이터셋·평가) | 품질 규칙 실패율 · 멱등성 · 첫 버전 비교 |
+| **2. 검색** | Q1 | BM25 → 벡터 → 하이브리드 · 리랭킹 · golden set · **Console v2** | Recall@k · MRR · nDCG · 검색 지연 |
+| **3. RAG·앱** | Q2 · Q3 | 인용형 QA API · 스트리밍 UI · SQL 라우팅 · 배포 · **Console v2.5** | Faithfulness · Citation · TTFT |
 | **4. Agent·안전** | Q4 · Q7 | 일정 생성 agent · 공격 테스트 셋 · 가드레일 | Task 성공률 · pass^k · ASR |
-| **5. 평가·운영** | Q5 · Q6 | CI 회귀 평가 · 비용·품질 대시보드 · 캐싱·라우팅 | goodput · 요청당 비용 · 회귀 감지 |
+| **5. 평가·운영** | Q5 · Q6 | CI 회귀 평가 · **Console v3** · 캐싱·라우팅 | goodput · 요청당 비용 · 회귀 감지 · 신뢰구간 |
 
 ---
 
@@ -117,15 +146,19 @@ Question   →  Hypothesis  →  Variants (A vs B)  →  Fixed (dataset·model·
 
 ```
 travel-ai-lab/
-├── apps/api/              # FastAPI (/ask, /search)
+├── apps/
+│   ├── api/               # FastAPI (/ask, /search)
+│   └── console/           # Streamlit Lab Console (LLMOps 도구)
 ├── packages/
 │   ├── ingest/            # 수집·정규화
 │   ├── retrieval/         # chunker · embedder · retriever · reranker
 │   ├── generation/        # LLM provider · prompt · 인용 처리
 │   ├── agent/             # tools · orchestrator
-│   ├── evaluation/        # metrics · runner · judge
+│   ├── evaluation/        # metrics · evaluators · runner · judge (api·console 공용)
+│   ├── registry/          # 프롬프트·데이터셋·평가 실행 버전 관리 (PostgreSQL ops 스키마)
 │   └── shared/            # bench · logging · config
-├── prompts/               # 버전 관리되는 프롬프트
+├── migrations/            # DB 스키마 마이그레이션
+├── prompts/               # 프롬프트 초안 (채택본은 registry에 버전으로 등록)
 ├── data/evaluation/       # golden set · 테스트 케이스 (버전별)
 ├── docs/experiments/      # 실험 노트
 ├── docs/adr/              # 설계 결정 기록
@@ -134,7 +167,7 @@ travel-ai-lab/
 
 ## 기술 스택
 
-**Python · uv** / FastAPI · Pydantic / PostgreSQL · pgvector / LLM API (structured output · streaming · tool calling) / sentence-transformers / pytest · Ruff · Pyright / Docker · GitHub Actions / OpenTelemetry
+**Python · uv** / FastAPI · Pydantic / PostgreSQL · pgvector / LLM API (structured output · streaming · tool calling) / sentence-transformers / Streamlit (Lab Console) / pytest · Ruff · Pyright / Docker · GitHub Actions / OpenTelemetry
 
 ### 기술 지도 (요약)
 
@@ -154,7 +187,8 @@ travel-ai-lab/
 | 생성 | 구조화 출력 | **Pydantic + structured output** → Instructor · Outlines |
 | 평가 | RAG 평가 | **직접 구현 runner · judge** → Ragas · DeepEval · promptfoo |
 | 운영 | 로깅 · 트레이싱 | **JSONL · OpenTelemetry** → Langfuse · LangSmith · Arize Phoenix |
-| 운영 | 실험 추적 | **실험 노트 + CSV** → MLflow · Weights & Biases |
+| 운영 | 프롬프트·데이터셋·평가 관리 | **Lab Console (Streamlit + PostgreSQL)** → Langfuse · LangSmith · promptfoo |
+| 운영 | 실험 추적 | **실험 노트 + Console 평가 기록** → MLflow · Weights & Biases |
 | 안전 | 가드레일 | **직접 구현 규칙** → Guardrails AI · NeMo Guardrails · Llama Guard |
 | 데이터 | 파이프라인 | **GitHub Actions 스케줄** → Airflow · Prefect · Dagster |
 | 앱 | UI | **Streamlit** → Gradio · Chainlit · Next.js + Vercel AI SDK |

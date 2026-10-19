@@ -74,8 +74,9 @@ LLM 애플리케이션을 구성하는 **개념별로**, 이 Lab에서 쓰는 �
 | --- | --- | --- |
 | **호출 로깅** | 모델·프롬프트 버전·토큰·지연·비용 기록 | ✅ 구조화 JSONL 로그 |
 | **트레이싱** | 한 요청 안의 검색·LLM·도구 단계를 이어서 보기 | 🔍 OpenTelemetry · Langfuse · 📚 LangSmith · Arize Phoenix · Helicone |
-| **프롬프트 관리** | 프롬프트 버전·배포·A/B | ✅ Git 파일 버전 관리 · 📚 Langfuse · LangSmith prompt hub |
-| **실험 추적** | 실험 설정·결과 비교 | ✅ 실험 노트 + CSV · 📚 MLflow · Weights & Biases |
+| **프롬프트 관리** | 프롬프트 버전·배포·A/B | ✅ Lab Console (PostgreSQL `ops` 스키마) · 🔍 Langfuse · 📚 LangSmith prompt hub |
+| **평가 데이터셋 관리** | 평가셋 버전·문항 관리, 합성 문항 생성·검수 | ✅ Lab Console · 🔍 Ragas testset generation · 📚 Langfuse datasets · LangSmith datasets |
+| **실험 추적** | 실험 설정·결과 비교 | ✅ 실험 노트 + Console 평가 기록(run manifest) · 📚 MLflow · Weights & Biases |
 | **부하 테스트** | 동시 요청에서의 처리량·지연 | 🔍 locust · k6 |
 | **모니터링** | 지표 대시보드·알림 | 📚 Prometheus · Grafana |
 

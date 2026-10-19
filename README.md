@@ -83,41 +83,10 @@ flowchart LR
 
 ## Lab Console (LLMOps 도구)
 
-위 평가 체계를 **직접 다루는 사내 도구**입니다. 프롬프트·데이터셋·평가 결과를 버전으로 관리하고, 버전끼리 지표를 비교해 채택 여부를 결정합니다.
-『LLMOps를 활용한 LLM 엔지니어링』(박슬기, 위키북스)의 LLMOps 도구 구성을 참고하되, 프레임워크 없이 Lab의 인터페이스 위에 만듭니다.
+평가 체계를 직접 다루는 사내 도구입니다. 프롬프트·데이터셋·평가 결과를 버전으로 관리하고, **버전끼리 지표를 비교해 채택 여부를 결정**합니다.
+FastAPI(`/ops/*`)가 로직을, worker가 평가 실행을, Next.js가 화면을 맡고 PostgreSQL에 기록합니다. 로드맵에 맞춰 v1 → v3로 확장합니다.
 
-| 버전 | 기능 | 쓰이는 단계 |
-| --- | --- | --- |
-| **v1** | Playground(모델·프롬프트 즉시 호출) · 프롬프트 버저닝 · 데이터셋 관리 · 평가 실행 · 버전별 지표 비교 | 0.5 이후 |
-| **v2** | 검색 지표(Recall@k · nDCG) · 합성 데이터셋 생성 → 사람 검수 | 2. 검색 |
-| **v2.5** | RAG 평가자(faithfulness · context precision) · 토큰·지연·비용 분석 | 3. RAG |
-| **v3** | Agent trace 조회 · 운영 모니터링 · injection 탐지 로그 | 4–5 |
-
-**구성**
-
-```
-Next.js (apps/web)  ──HTTP──▶  FastAPI /ops/* (apps/api)  ──▶  PostgreSQL ops 스키마
-   화면만 담당                    버전·데이터셋·평가 로직             ▲
-                                   │ 평가 실행 요청 (job 등록)        │ 결과 저장
-                                   └──────────▶  Eval Worker (apps/worker)
-```
-
-- **프론트엔드는 바이브코딩으로 만듭니다.** 이 Lab의 학습 대상은 백엔드·평가·운영이고, 화면은 AI 코딩 도구로 생성합니다.
-- 그래서 **모든 로직은 FastAPI에** 두고, 프론트엔드는 API를 호출해 보여주기만 합니다.
-- **API 계약이 기준입니다.** FastAPI의 OpenAPI 스키마에서 TypeScript 타입을 생성(`openapi-typescript`)해 프론트엔드가 그 타입만 쓰게 합니다. 프론트 코드 리뷰는 "계약대로 호출하는가"만 봅니다.
-- 오래 걸리는 평가는 **worker가 실행**하고, 화면은 실행 요청 · 진행 상태 조회 · 결과 비교만 합니다.
-
-**저장소는 PostgreSQL** — 서비스 데이터와 같은 DB에 `ops` 스키마를 따로 둡니다.
-
-| 테이블 | 담는 것 |
-| --- | --- |
-| `prompts` · `prompt_versions` | 프롬프트 이름, 버전별 템플릿·파라미터·작성 메모 |
-| `datasets` · `dataset_items` | 평가셋 버전, 문항(질문 · 정답 문서 ID · 기대 답변 · 유형 · 출처: 수작업/합성) |
-| `eval_runs` | 한 번의 평가 실행 + **run manifest**(프롬프트·데이터셋·인덱스·임베딩·모델 버전, git commit) |
-| `eval_results` | 문항별 출력 · 지표 점수 · 토큰 · 지연 · 비용 · 실패 태그 |
-
-> run manifest가 있어야 "이 점수가 어떤 조합에서 나왔는가"를 언제든 재현할 수 있습니다.
-> 직접 만든 뒤에는 같은 기능을 Langfuse 등 실무 도구와 비교해 실험 노트로 남깁니다.
+→ 설계: [docs/console.md](docs/console.md)
 
 ---
 
@@ -163,18 +132,19 @@ travel-ai-lab/
 ├── apps/
 │   ├── api/               # FastAPI (/ask, /search, /ops/* Console API)
 │   ├── worker/            # 평가 실행 worker (PostgreSQL job 큐)
-│   └── web/               # Next.js — 사용자 채팅 화면 + /console (바이브코딩, API 계약 기반)
+│   └── web/               # Next.js — 채팅 화면 + /console (바이브코딩)
 ├── packages/
 │   ├── ingest/            # 수집·정규화
 │   ├── retrieval/         # chunker · embedder · retriever · reranker
 │   ├── generation/        # LLM provider · prompt · 인용 처리
 │   ├── agent/             # tools · orchestrator
-│   ├── evaluation/        # metrics · evaluators · runner · judge (api·console 공용)
+│   ├── evaluation/        # metrics · evaluators · runner · judge (api·worker 공용)
 │   ├── registry/          # 프롬프트·데이터셋·평가 실행 버전 관리 (PostgreSQL ops 스키마)
 │   └── shared/            # bench · logging · config
 ├── migrations/            # DB 스키마 마이그레이션
 ├── prompts/               # 프롬프트 초안 (채택본은 registry에 버전으로 등록)
 ├── data/evaluation/       # golden set · 테스트 케이스 (버전별)
+├── docs/                  # console 설계 · 기술 지도
 ├── docs/experiments/      # 실험 노트
 ├── docs/adr/              # 설계 결정 기록
 └── tests/
@@ -184,30 +154,7 @@ travel-ai-lab/
 
 **Python · uv** / FastAPI · Pydantic / PostgreSQL · pgvector / LLM API (structured output · streaming · tool calling) / sentence-transformers / Next.js (프론트엔드 · 바이브코딩) / pytest · Ruff · Pyright / Docker · GitHub Actions / OpenTelemetry
 
-### 기술 지도 (요약)
-
-같은 역할을 하는 기술끼리 묶었습니다. **굵게** 표시한 것이 이 Lab의 출발점이고, 나머지는 비교 후보이거나 알아둘 대안입니다.
-전체 목록과 각 칸의 설명은 **[docs/tech-landscape.md](docs/tech-landscape.md)** 에 있습니다.
-
-| 층위 | 개념 | 이 Lab의 선택 → 비슷한 기술 |
-| --- | --- | --- |
-| 모델 | LLM 호출 · 라우팅 | **상용 API + 직접 구현 Provider** → LiteLLM · OpenRouter |
-| 모델 | 로컬 · 서빙 | Ollama → vLLM · SGLang · TGI |
-| 검색 | 키워드 (BM25) | **PostgreSQL FTS** → Elasticsearch/OpenSearch(nori) · Kiwi |
-| 검색 | 임베딩 | **상용 API · bge-m3 · KURE** → multilingual-e5 · Cohere · Voyage |
-| 검색 | 벡터 저장 | **pgvector** → Qdrant · Milvus · Weaviate · Chroma · Pinecone · FAISS |
-| 검색 | 리랭킹 | **cross-encoder** → Cohere Rerank · ColBERT |
-| 생성 | RAG · Agent 구성 | **직접 구현 loop** → LangGraph · LlamaIndex · LangChain · PydanticAI |
-| 생성 | 도구 연결 | **function calling** → MCP |
-| 생성 | 구조화 출력 | **Pydantic + structured output** → Instructor · Outlines |
-| 평가 | RAG 평가 | **직접 구현 runner · judge** → Ragas · DeepEval · promptfoo |
-| 운영 | 로깅 · 트레이싱 | **JSONL · OpenTelemetry** → Langfuse · LangSmith · Arize Phoenix |
-| 운영 | 프롬프트·데이터셋·평가 관리 | **Lab Console (Next.js + FastAPI + PostgreSQL)** → Langfuse · LangSmith · promptfoo |
-| 운영 | 실험 추적 | **실험 노트 + Console 평가 기록** → MLflow · Weights & Biases |
-| 안전 | 가드레일 | **직접 구현 규칙** → Guardrails AI · NeMo Guardrails · Llama Guard |
-| 데이터 | 파이프라인 | **GitHub Actions 스케줄** → Airflow · Prefect · Dagster |
-| 앱 | UI | **Next.js (바이브코딩)** → Streamlit · Gradio · Chainlit |
-| 앱 | 백그라운드 작업 | **PostgreSQL job 큐 + worker** → Celery · arq · Dramatiq |
+같은 역할을 하는 대안 기술과 각 개념의 설명은 **[docs/tech-landscape.md](docs/tech-landscape.md)** 에 정리했습니다.
 
 > 프레임워크를 먼저 쓰지 않고 직접 구현하는 이유: 각 부품이 무엇을 하는지 이해한 뒤, **같은 평가셋에서 프레임워크와 비교해** 도입 여부를 숫자로 결정하기 위해서입니다.
 

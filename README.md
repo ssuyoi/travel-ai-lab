@@ -93,6 +93,20 @@ flowchart LR
 | **v2.5** | RAG 평가자(faithfulness · context precision) · 토큰·지연·비용 분석 | 3. RAG |
 | **v3** | Agent trace 조회 · 운영 모니터링 · injection 탐지 로그 | 4–5 |
 
+**구성**
+
+```
+Next.js (apps/web)  ──HTTP──▶  FastAPI /ops/* (apps/api)  ──▶  PostgreSQL ops 스키마
+   화면만 담당                    버전·데이터셋·평가 로직             ▲
+                                   │ 평가 실행 요청 (job 등록)        │ 결과 저장
+                                   └──────────▶  Eval Worker (apps/worker)
+```
+
+- **프론트엔드는 바이브코딩으로 만듭니다.** 이 Lab의 학습 대상은 백엔드·평가·운영이고, 화면은 AI 코딩 도구로 생성합니다.
+- 그래서 **모든 로직은 FastAPI에** 두고, 프론트엔드는 API를 호출해 보여주기만 합니다.
+- **API 계약이 기준입니다.** FastAPI의 OpenAPI 스키마에서 TypeScript 타입을 생성(`openapi-typescript`)해 프론트엔드가 그 타입만 쓰게 합니다. 프론트 코드 리뷰는 "계약대로 호출하는가"만 봅니다.
+- 오래 걸리는 평가는 **worker가 실행**하고, 화면은 실행 요청 · 진행 상태 조회 · 결과 비교만 합니다.
+
 **저장소는 PostgreSQL** — 서비스 데이터와 같은 DB에 `ops` 스키마를 따로 둡니다.
 
 | 테이블 | 담는 것 |
@@ -136,7 +150,7 @@ Question   →  Hypothesis  →  Variants (A vs B)  →  Fixed (dataset·model·
 | **0.5 단순 RAG** | 일단 끝까지 돌아가는가 | 장소 100개 · 임베딩 · 코사인 top-5 · LLM 답변 — 이후 모든 실험의 **기준선** | 직접 질문 20개로 눈 평가 |
 | **1. 데이터 · Console v1** | 믿을 수 있는 지식베이스인가 · 변경을 비교할 수 있는가 | 스키마 · 수집·정규화 파이프라인 · **Lab Console v1** (프롬프트·데이터셋·평가) | 품질 규칙 실패율 · 멱등성 · 첫 버전 비교 |
 | **2. 검색** | Q1 | BM25 → 벡터 → 하이브리드 · 리랭킹 · golden set · **Console v2** | Recall@k · MRR · nDCG · 검색 지연 |
-| **3. RAG·앱** | Q2 · Q3 | 인용형 QA API · 스트리밍 UI · SQL 라우팅 · 배포 · **Console v2.5** | Faithfulness · Citation · TTFT |
+| **3. RAG·앱** | Q2 · Q3 | 인용형 QA API · 스트리밍 채팅 화면(Next.js) · SQL 라우팅 · 배포 · **Console v2.5** | Faithfulness · Citation · TTFT |
 | **4. Agent·안전** | Q4 · Q7 | 일정 생성 agent · 공격 테스트 셋 · 가드레일 | Task 성공률 · pass^k · ASR |
 | **5. 평가·운영** | Q5 · Q6 | CI 회귀 평가 · **Console v3** · 캐싱·라우팅 | goodput · 요청당 비용 · 회귀 감지 · 신뢰구간 |
 
@@ -147,8 +161,9 @@ Question   →  Hypothesis  →  Variants (A vs B)  →  Fixed (dataset·model·
 ```
 travel-ai-lab/
 ├── apps/
-│   ├── api/               # FastAPI (/ask, /search)
-│   └── console/           # Streamlit Lab Console (LLMOps 도구)
+│   ├── api/               # FastAPI (/ask, /search, /ops/* Console API)
+│   ├── worker/            # 평가 실행 worker (PostgreSQL job 큐)
+│   └── web/               # Next.js — 사용자 채팅 화면 + /console (바이브코딩, API 계약 기반)
 ├── packages/
 │   ├── ingest/            # 수집·정규화
 │   ├── retrieval/         # chunker · embedder · retriever · reranker
@@ -167,7 +182,7 @@ travel-ai-lab/
 
 ## 기술 스택
 
-**Python · uv** / FastAPI · Pydantic / PostgreSQL · pgvector / LLM API (structured output · streaming · tool calling) / sentence-transformers / Streamlit (Lab Console) / pytest · Ruff · Pyright / Docker · GitHub Actions / OpenTelemetry
+**Python · uv** / FastAPI · Pydantic / PostgreSQL · pgvector / LLM API (structured output · streaming · tool calling) / sentence-transformers / Next.js (프론트엔드 · 바이브코딩) / pytest · Ruff · Pyright / Docker · GitHub Actions / OpenTelemetry
 
 ### 기술 지도 (요약)
 
@@ -187,11 +202,12 @@ travel-ai-lab/
 | 생성 | 구조화 출력 | **Pydantic + structured output** → Instructor · Outlines |
 | 평가 | RAG 평가 | **직접 구현 runner · judge** → Ragas · DeepEval · promptfoo |
 | 운영 | 로깅 · 트레이싱 | **JSONL · OpenTelemetry** → Langfuse · LangSmith · Arize Phoenix |
-| 운영 | 프롬프트·데이터셋·평가 관리 | **Lab Console (Streamlit + PostgreSQL)** → Langfuse · LangSmith · promptfoo |
+| 운영 | 프롬프트·데이터셋·평가 관리 | **Lab Console (Next.js + FastAPI + PostgreSQL)** → Langfuse · LangSmith · promptfoo |
 | 운영 | 실험 추적 | **실험 노트 + Console 평가 기록** → MLflow · Weights & Biases |
 | 안전 | 가드레일 | **직접 구현 규칙** → Guardrails AI · NeMo Guardrails · Llama Guard |
 | 데이터 | 파이프라인 | **GitHub Actions 스케줄** → Airflow · Prefect · Dagster |
-| 앱 | UI | **Streamlit** → Gradio · Chainlit · Next.js + Vercel AI SDK |
+| 앱 | UI | **Next.js (바이브코딩)** → Streamlit · Gradio · Chainlit |
+| 앱 | 백그라운드 작업 | **PostgreSQL job 큐 + worker** → Celery · arq · Dramatiq |
 
 > 프레임워크를 먼저 쓰지 않고 직접 구현하는 이유: 각 부품이 무엇을 하는지 이해한 뒤, **같은 평가셋에서 프레임워크와 비교해** 도입 여부를 숫자로 결정하기 위해서입니다.
 

@@ -94,7 +94,10 @@ LLM 애플리케이션을 구성하는 **개념별로**, 이 Lab에서 쓰는 �
 | 개념 | 하는 일 | 기술 |
 | --- | --- | --- |
 | **API 서버** | 검색·질의응답 엔드포인트 | ✅ FastAPI · 📚 Flask · Spring Boot(Java/Kotlin 팀) |
-| **데모 UI** | 빠른 채팅·검색 화면 | ✅ Streamlit · 📚 Gradio · Chainlit · Next.js + Vercel AI SDK |
+| **웹 화면** | 채팅 화면 · Lab Console | ✅ Next.js (바이브코딩) · 📚 Vercel AI SDK · shadcn/ui |
+| **빠른 데모 UI** | Python만으로 만드는 내부 도구·데모 | 📚 Streamlit · Gradio · Chainlit · NiceGUI |
+| **API 계약 → 타입** | 백엔드 스키마로 프론트 타입 자동 생성 | ✅ FastAPI OpenAPI + openapi-typescript · 📚 orval · tRPC(TS 풀스택) |
+| **백그라운드 작업** | 오래 걸리는 평가를 요청과 분리해 실행 | ✅ PostgreSQL job 큐(`FOR UPDATE SKIP LOCKED`) + worker · 📚 Celery · arq · Dramatiq · Temporal |
 | **스트리밍 전송** | 토큰을 실시간으로 화면에 | ✅ SSE · 📚 WebSocket |
 | **컨테이너·배포** | 실행 환경 재현·배포 | ✅ Docker · Docker Compose · 📚 Kubernetes · Cloud Run · Fly.io |
 | **CI/CD** | 테스트·린트·평가 자동 실행 | ✅ GitHub Actions · 📚 Argo CD |

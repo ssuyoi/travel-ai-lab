@@ -1,15 +1,20 @@
 # 🧭 Travel AI Engineering Lab
 
-관광 도메인에서 **검색 · RAG · Agent** 시스템을 직접 만들고, **평가로 개선을 증명하는** LLM 애플리케이션 엔지니어링 실험실입니다.
+관광 도메인을 대상으로 **데이터 → 검색 → LLM·RAG → Agent → 평가·운영**까지 LLM 애플리케이션의 전 과정을 직접 설계하고, 기술을 비교 실험하는 개인 학습·실험 저장소입니다.
 
-> 기능을 붙이는 것보다 **"이 변경이 정말 나아졌는가?"를 숫자로 답하는 것**을 목표로 합니다.
-> 모든 설계 결정은 **품질 · 지연 · 비용** 세 축의 측정 결과와 함께 기록합니다.
+기능을 붙이는 데서 끝내지 않고, **"이 변경이 정말 나아졌는가?"를 품질 · 지연 · 비용 세 축의 숫자로 답하는 것**을 목표로 합니다.
+모든 기술 선택은 같은 평가셋 위에서 **A vs B 비교 실험**을 거친 뒤 결정하고, 그 근거를 실험 노트와 ADR로 남깁니다.
+
+> **상태:** 학습 진행 중 (W00-1). 아래 기술과 구조는 **학습·비교 실험 대상**이며, 이미 구현했다는 의미는 아닙니다.
+> 공공 관광 데이터(TourAPI 등)만 사용하며, 운영 서비스와 분리된 독립 환경에서 실험합니다.
 
 ---
 
-## 이 Lab이 답하려는 질문
+## Research Questions
 
-| # | 질문 | 다루는 곳 |
+이 Lab의 모든 실험은 아래 질문 중 하나에 답하기 위해 진행합니다.
+
+| # | 질문 | 영역 |
 | --- | --- | --- |
 | Q1 | 한국어 관광 질의에서 **어떤 검색 방식**이 근거 문서를 가장 잘 찾는가? (BM25 · 벡터 · 하이브리드 · 리랭킹) | Retrieval |
 | Q2 | 검색 결과를 **어떻게 구성해야** 답변이 근거를 벗어나지 않는가? (chunking · context 수 · 인용 형식) | Generation |
@@ -21,7 +26,29 @@
 
 ---
 
-## 시스템
+## Topics & Technologies
+
+**굵게** 표시한 기술이 출발점이고, `→` 뒤는 같은 평가셋에서 비교할 후보입니다. 프레임워크보다 직접 구현을 먼저 해서 각 부품이 무엇을 하는지 이해한 뒤, 도입 여부를 숫자로 결정합니다.
+
+| Category | Technologies |
+| --- | --- |
+| Language & Data | **Python 3.12 · uv · NumPy · Pydantic · PostgreSQL** · pytest · Ruff · Pyright |
+| Keyword Search | **PostgreSQL FTS** → Elasticsearch/OpenSearch(nori) · Kiwi 형태소 분석 |
+| Embedding · Vector | **상용 API · bge-m3 · KURE + pgvector** → multilingual-e5 · Cohere · Voyage / Qdrant · Milvus · Chroma · FAISS |
+| Reranking | **cross-encoder** → Cohere Rerank · LLM 리랭크 |
+| LLM · Structured Output | **상용 LLM API + 직접 구현 Provider · Pydantic structured output** → LiteLLM · Ollama/vLLM · Instructor · Outlines |
+| RAG · Agent | **직접 구현 workflow·agent loop · function calling** → LangGraph · LlamaIndex · LangChain · MCP |
+| Evaluation | **직접 구현 eval runner · LLM-as-judge** → Ragas · DeepEval · promptfoo |
+| Observability | **JSONL 로그 · OpenTelemetry** → Langfuse · LangSmith · Arize Phoenix |
+| Safety | **직접 구현 규칙 기반 가드레일** → Guardrails AI · NeMo Guardrails · Llama Guard |
+| LLMOps (Lab Console) | **직접 구현 Console — FastAPI `/ops` + PostgreSQL `ops` 스키마 + 평가 worker** → Langfuse · LangSmith · promptfoo |
+| Application · Infra | **FastAPI · Next.js(바이브코딩) · Docker Compose · GitHub Actions** → Streamlit · Vercel AI SDK · Redis |
+
+같은 역할을 하는 대안 기술과 각 개념의 설명은 [docs/tech-landscape.md](docs/tech-landscape.md)에 정리했습니다.
+
+---
+
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -48,7 +75,11 @@ flowchart LR
     G --> L
 ```
 
-모든 단계는 **교체 가능한 인터페이스**로 분리해, 한 부분만 바꿔 끼우고 같은 평가셋으로 비교합니다.
+- **baseline부터 한 변수씩:** 가장 단순한 RAG(장소 100개 → 임베딩 → 코사인 유사도 top-5 → LLM 답변)를 먼저 완성하고, 이후 모든 실험은 이 버전을 기준선으로 삼아 한 부분씩 바꿔 개선합니다.
+- **검색과 생성을 분리해서 측정:** 답이 틀렸을 때 검색 문제인지 생성 문제인지 구분할 수 있어야 합니다.
+- **근거 우선 응답:** 출처 없는 사실은 확정적으로 말하지 않고, 근거가 부족하면 "추가 확인 필요"로 답을 보류합니다.
+
+각 단계는 교체 가능한 인터페이스로 분리해, 한 부분만 바꿔 끼우고 같은 평가셋으로 비교합니다.
 
 | 컴포넌트 | 인터페이스 | 비교 구현체 (Variants) |
 | --- | --- | --- |
@@ -61,9 +92,9 @@ flowchart LR
 
 ---
 
-## 평가 체계 (Eval Stack)
+## Evaluation Stack
 
-검색과 생성을 **분리해서** 측정해야 문제가 어디서 생겼는지 알 수 있습니다.
+검색과 생성을 **분리해서** 측정해야 문제가 어느 단계에서 생겼는지 알 수 있습니다.
 
 | 층위 | 무엇을 보나 | 지표 | 방법 |
 | --- | --- | --- | --- |
@@ -73,11 +104,7 @@ flowchart LR
 | **Safety** | 공격에 버티나 | 공격 성공률(ASR) · 오거부율 | 직접·간접 injection 테스트 셋 |
 | **System** | 빠르고 싼가 | p50/p95 latency · TTFT · TPOT · 요청당 비용 · 캐시 적중률 | 호출 로그 집계 |
 
-**평가의 신뢰도도 함께 잽니다**
-- 같은 입력을 **k회 반복**해 성공률과 분산을 본다 (LLM은 비결정적).
-- 평가 문항이 적으면 **95% bootstrap 신뢰구간**을 적고, 같은 문항끼리 짝지어 비교한다.
-- LLM 판정자는 사람 라벨과의 **Cohen's κ**로 검증한 뒤에만 자동 평가에 쓴다.
-- 평가셋은 버전을 매기고, 프롬프트 튜닝에 쓴 예시는 평가셋에 넣지 않는다.
+평가셋은 직접 작성한 v1(30–50문항)에서 시작해 LLM 생성 + 사람 검수로 v2(100문항)까지 키우며, 버전과 dev/test를 나눠 관리합니다. 문항이 적을 때는 k회 반복 측정과 95% 신뢰구간을 함께 적고, LLM 판정자는 사람 라벨과의 일치도(Cohen's κ)로 검증한 뒤에 사용합니다.
 
 ---
 
@@ -90,77 +117,58 @@ FastAPI(`/ops/*`)가 로직을, worker가 평가 실행을, Next.js가 화면을
 
 ---
 
-## 실험 기록
+## Roadmap
 
-모든 실험은 같은 형식으로 남기고(`docs/experiments/`), 채택한 결정은 ADR로 정리합니다(`docs/adr/`).
+| Phase | 주차 | 내용 | 관련 질문 |
+| --- | --- | --- | --- |
+| 1. 기초 | W00-1 ~ W02-2 | 공공 API 수집, 가장 단순한 RAG(baseline), 측정 모듈, LLM 호출 래퍼, tool calling, eval runner | Q4 · Q5 |
+| 2. 데이터 | W03 – W04 | 관광 데이터 모델링, ETL, baseline을 PostgreSQL + pgvector로 이전 | |
+| 3. 평가셋·검색 | W05 – W07 | Golden set 구축, BM25·한국어 형태소 분석, chunking·하이브리드·리랭킹, **Lab Console v1** | Q1 · Q2 · Q5 |
+| 4. RAG·앱 | W08 – W09 | 인용형 QA와 Next.js 스트리밍 채팅 화면, 멀티턴·SQL 라우팅, 첫 배포, **Console v2** | Q2 · Q3 |
+| 5. Agent·안전 | W10 – W11 | 제한형 일정 생성 agent, prompt injection 공격 테스트와 가드레일 | Q4 · Q7 |
+| 6. 평가·운영 | W12 – W13 | 합성 평가셋 확장, CI 품질 게이트, 비용·품질 대시보드(**Console v3**) | Q5 · Q6 |
+| 7. 마무리 | W14 | 심화 실험, 데모, 포트폴리오 정리 | |
+
+---
+
+## Experiments
+
+모든 실험은 같은 형식으로 `docs/experiments/`에 남기고, 채택한 결정은 `docs/adr/`에 ADR로 정리합니다. 수치뿐 아니라 실패 사례를 직접 읽고 원인을 분류한 결과(Error Analysis)를 함께 남깁니다.
 
 ```
-Question   →  Hypothesis  →  Variants (A vs B)  →  Fixed (dataset·model·prompt 버전)
-→ Metrics (품질 · 지연 · 비용)  →  Result  →  Decision
+Problem → Hypothesis → Implementation → Experiment (A vs B, 고정 변수)
+→ Metrics (품질 · 지연 · 비용) → Result → Error Analysis → Learned → Decision (채택 / 보류 / 폐기)
 ```
 
-| ID | 질문 | 비교 | 결과 요약 | 결정 |
-| --- | --- | --- | --- | --- |
-| EXP-001 | 수집은 어떤 동시성 모델이 적합한가 | 동기 · 스레드 · asyncio | _진행 예정_ | |
-| EXP-002 | 한국어 관광 문장에 맞는 임베딩은 | 상용 API · bge-m3 · KURE | _진행 예정_ | |
-| EXP-003 | 구조화 출력은 어떤 방식이 안정적인가 | 프롬프트 JSON · structured output · tool 인자 | _진행 예정_ | |
-| EXP-004 | 도구 설명이 호출 정확도에 주는 영향 | 짧은 설명 · 상세 설명 | _진행 예정_ | |
-| EXP-005 | 하이브리드 검색의 가중치는 | BM25 · Vector · α 스윕 · RRF | _진행 예정_ | |
+| ID | 주차 | 질문 | 비교 | 결과 요약 | 결정 |
+| --- | --- | --- | --- | --- | --- |
+| EXP-001 | W01-2 | 한국어 관광 문장에 맞는 임베딩은 무엇인가 | 상용 API · bge-m3 · KURE | _진행 예정_ | |
+| EXP-002 | W02-1 | 구조화 출력은 어떤 방식이 안정적인가 | 프롬프트 JSON · structured output · tool 인자 | _진행 예정_ | |
+| EXP-003 | W02-2 | 도구 설명이 호출 정확도에 주는 영향은 | 짧은 설명 · 상세 설명 | _진행 예정_ | |
+| EXP-004 | W06 | 키워드 검색이 벡터 검색이 놓친 질문을 찾는가 | Vector(baseline) · BM25 | _진행 예정_ | |
+| EXP-005 | W07 | 두 검색을 합치면 나아지는가 | Vector · BM25 · 하이브리드(RRF) | _진행 예정_ | |
 
 > 결과가 쌓이면 이 표가 Lab의 핵심 산출물이 됩니다.
 
 ---
 
-## 로드맵
-
-| 단계 | 핵심 질문 | 만드는 것 | 측정 기반 |
-| --- | --- | --- | --- |
-| **0. 기초** | 어떻게 재고, 어떻게 비교하나 | 측정 모듈 `bench.py` · 관측 가능한 LLM 호출 래퍼 | latency 분포 (p50 · p95) |
-| **0.5 단순 RAG** | 일단 끝까지 돌아가는가 | 장소 100개 · 임베딩 · 코사인 top-5 · LLM 답변 — 이후 모든 실험의 **기준선** | 직접 질문 20개로 눈 평가 |
-| **1. 데이터** | 믿을 수 있는 지식베이스인가 | 스키마 · 수집·정규화 파이프라인 · baseline을 PostgreSQL+pgvector로 이전 | 품질 규칙 실패율 · 멱등성 |
-| **2. 검색** | Q1 | BM25 → 벡터 → 하이브리드 · 리랭킹 · golden set · **Console v1** (데이터셋·평가 기록·결과 비교) | Recall@k · MRR · nDCG · 검색 지연 |
-| **3. RAG·앱** | Q2 · Q3 | 인용형 QA API · 스트리밍 채팅 화면(Next.js) · SQL 라우팅 · 배포 · **Console v2** (프롬프트 버저닝·RAG 평가자) | Faithfulness · Citation · TTFT |
-| **4. Agent·안전** | Q4 · Q7 | 일정 생성 agent · 공격 테스트 셋 · 가드레일 | Task 성공률 · pass^k · ASR |
-| **5. 평가·운영** | Q5 · Q6 | 합성 평가셋 · CI 품질 게이트 · **Console v3** (운영 대시보드) · 캐싱·라우팅 | goodput · 요청당 비용 · 회귀 감지 · 신뢰구간 |
-
----
-
-## 디렉토리 (계획)
-
-```
-travel-ai-lab/
-├── apps/
-│   ├── api/               # FastAPI (/ask, /search, /ops/* Console API)
-│   ├── worker/            # 평가 실행 worker (PostgreSQL job 큐)
-│   └── web/               # Next.js — 채팅 화면 + /console (바이브코딩)
-├── packages/
-│   ├── ingest/            # 수집·정규화
-│   ├── retrieval/         # chunker · embedder · retriever · reranker
-│   ├── generation/        # LLM provider · prompt · 인용 처리
-│   ├── agent/             # tools · orchestrator
-│   ├── evaluation/        # metrics · evaluators · runner · judge (api·worker 공용)
-│   ├── registry/          # 프롬프트·데이터셋·평가 실행 버전 관리 (PostgreSQL ops 스키마)
-│   └── shared/            # bench · logging · config
-├── migrations/            # DB 스키마 마이그레이션
-├── prompts/               # 프롬프트 초안 (채택본은 registry에 버전으로 등록)
-├── data/evaluation/       # golden set · 테스트 케이스 (버전별)
-├── docs/                  # console 설계 · 기술 지도
-├── docs/experiments/      # 실험 노트
-├── docs/adr/              # 설계 결정 기록
-└── tests/
-```
-
-## 기술 스택
-
-**Python · uv** / FastAPI · Pydantic / PostgreSQL · pgvector / LLM API (structured output · streaming · tool calling) / sentence-transformers / Next.js (프론트엔드 · 바이브코딩) / pytest · Ruff · Pyright / Docker · GitHub Actions / OpenTelemetry
-
-같은 역할을 하는 대안 기술과 각 개념의 설명은 **[docs/tech-landscape.md](docs/tech-landscape.md)** 에 정리했습니다.
-
-> 프레임워크를 먼저 쓰지 않고 직접 구현하는 이유: 각 부품이 무엇을 하는지 이해한 뒤, **같은 평가셋에서 프레임워크와 비교해** 도입 여부를 숫자로 결정하기 위해서입니다.
-
-## 시작하기
+## Getting Started
 
 ```bash
 uv sync
-uv run python main.py
+cp .env.example .env   # TOUR_API_KEY, LLM_API_KEY 입력
+
+# 1. 관광 데이터 수집
+uv run python scripts/fetch_tour_api.py
+
+# 2. 가장 단순한 RAG에 질문하기 (작성 예정)
+uv run python scripts/baseline_rag.py "애월에서 아이와 갈 만한 곳 알려줘"
+```
+
+```
+travel-ai-lab/
+├── scripts/        # 수집·실험 스크립트 (코드가 재사용되기 시작하면 packages/로 옮김)
+├── data/raw/       # API 원본 응답
+├── docs/           # Console 설계 · 기술 지도 · 실험 노트(experiments/) · ADR(adr/)
+└── logs/           # 실행 로그 (커밋 제외)
 ```

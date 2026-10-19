@@ -117,11 +117,11 @@ Question   →  Hypothesis  →  Variants (A vs B)  →  Fixed (dataset·model·
 | --- | --- | --- | --- |
 | **0. 기초** | 어떻게 재고, 어떻게 비교하나 | 측정 모듈 `bench.py` · 관측 가능한 LLM 호출 래퍼 | latency 분포 (p50 · p95) |
 | **0.5 단순 RAG** | 일단 끝까지 돌아가는가 | 장소 100개 · 임베딩 · 코사인 top-5 · LLM 답변 — 이후 모든 실험의 **기준선** | 직접 질문 20개로 눈 평가 |
-| **1. 데이터 · Console v1** | 믿을 수 있는 지식베이스인가 · 변경을 비교할 수 있는가 | 스키마 · 수집·정규화 파이프라인 · **Lab Console v1** (프롬프트·데이터셋·평가) | 품질 규칙 실패율 · 멱등성 · 첫 버전 비교 |
-| **2. 검색** | Q1 | BM25 → 벡터 → 하이브리드 · 리랭킹 · golden set · **Console v2** | Recall@k · MRR · nDCG · 검색 지연 |
-| **3. RAG·앱** | Q2 · Q3 | 인용형 QA API · 스트리밍 채팅 화면(Next.js) · SQL 라우팅 · 배포 · **Console v2.5** | Faithfulness · Citation · TTFT |
+| **1. 데이터** | 믿을 수 있는 지식베이스인가 | 스키마 · 수집·정규화 파이프라인 · baseline을 PostgreSQL+pgvector로 이전 | 품질 규칙 실패율 · 멱등성 |
+| **2. 검색** | Q1 | BM25 → 벡터 → 하이브리드 · 리랭킹 · golden set · **Console v1** (데이터셋·평가 기록·결과 비교) | Recall@k · MRR · nDCG · 검색 지연 |
+| **3. RAG·앱** | Q2 · Q3 | 인용형 QA API · 스트리밍 채팅 화면(Next.js) · SQL 라우팅 · 배포 · **Console v2** (프롬프트 버저닝·RAG 평가자) | Faithfulness · Citation · TTFT |
 | **4. Agent·안전** | Q4 · Q7 | 일정 생성 agent · 공격 테스트 셋 · 가드레일 | Task 성공률 · pass^k · ASR |
-| **5. 평가·운영** | Q5 · Q6 | CI 회귀 평가 · **Console v3** · 캐싱·라우팅 | goodput · 요청당 비용 · 회귀 감지 · 신뢰구간 |
+| **5. 평가·운영** | Q5 · Q6 | 합성 평가셋 · CI 품질 게이트 · **Console v3** (운영 대시보드) · 캐싱·라우팅 | goodput · 요청당 비용 · 회귀 감지 · 신뢰구간 |
 
 ---
 

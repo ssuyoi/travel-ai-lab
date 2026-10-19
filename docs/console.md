@@ -5,12 +5,11 @@ Lab Console은 프롬프트·데이터셋·평가 결과를 **버전으로 관�
 
 ## 버전별 기능
 
-| 버전 | 기능 | 로드맵 단계 |
+| 버전 | 기능 | 로드맵 단계 (Notion 주차) |
 | --- | --- | --- |
-| **v1** | Playground(모델·프롬프트 즉시 호출) · 프롬프트 버저닝 · 데이터셋 관리 · 평가 실행 · 버전별 지표 비교 | 1 |
-| **v2** | 검색 지표(Recall@k · nDCG) · 합성 데이터셋 생성 → 사람 검수 | 2 |
-| **v2.5** | RAG 평가자(faithfulness · context precision) · 토큰·지연·비용 분석 | 3 |
-| **v3** | Agent trace 조회 · 운영 모니터링 · injection 탐지 로그 | 4–5 |
+| **v1** | `ops` 스키마 · 데이터셋 등록 · 평가 실행 기록(run manifest) · 평가 worker · 검색 지표 결과 비교 화면 | 2. 검색 (W05 백엔드 · W07 API·worker·화면) |
+| **v2** | 프롬프트 버저닝 · Playground · RAG 평가자(faithfulness · context precision) · 토큰·지연·비용 분석 | 3. RAG (W08) |
+| **v3** | 합성 데이터셋 생성 → 사람 검수 · CI 품질 게이트 · 운영 대시보드(사용량 · 성능 · injection 탐지) · Langfuse 비교 | 5. 평가·운영 (W12–W13) |
 
 ## 구성
 

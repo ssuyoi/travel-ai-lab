@@ -3,8 +3,9 @@ name = "travel-ai-lab"
 version = "0.1.0"
 description = "관광 도메인 검색·RAG·Agent를 만들고 평가로 개선을 증명하는 LLM 애플리케이션 엔지니어링 Lab"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=2.3.0",
     "httpx>=0.28.1",
     "pydantic>=2.13.5",
     "python-dotenv>=1.2.1",

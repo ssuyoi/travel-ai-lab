@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import csv
-from datetime import datetime
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 
 import httpx
@@ -37,7 +37,7 @@ def call_api(client: httpx.Client, operation: str, params: dict) -> dict:
 
     try:
         resp = client.get(f"{BASE_URL}/{operation}", params={**COMMON_PARAMS, **params})
-    except httpx.RequestError as e:
+    except httpx.RequestError:
         log_latency(operation, None, None, (time.perf_counter() - start) * 1000)
         raise
 

@@ -8,6 +8,7 @@ body:
       value: |
         결과는 `docs/experiments/`의 Experiment Note로 남기고, PR에서 이 이슈를 닫는다.
         한 번에 한 변수만 바꾸고, 데이터셋·나머지 설정은 고정한다.
+        브랜치: 실험 코드가 중심이면 `feat/<이슈번호>-<요약>`, 측정과 실험 노트만 있으면 `docs/<이슈번호>-<요약>`
 
   - type: input
     id: unit

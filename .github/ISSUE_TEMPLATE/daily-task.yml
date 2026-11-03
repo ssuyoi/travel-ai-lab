@@ -1,0 +1,100 @@
+name: 📅 오늘 할 일
+description: 하루 단위 학습·실습 작업. 이슈 하나 = 브랜치 하나 = PR 하나.
+title: "[W00] "
+labels: ["daily"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        제목 형식: `[주차 코드] 한 줄 요약` (예: `[W00] latency.csv에 워밍업 측정 추가`)
+        브랜치 이름: `<type>/<이슈번호>-<요약>` (예: `feat/12-latency-warmup`)
+
+  - type: dropdown
+    id: unit
+    attributes:
+      label: 학습단위
+      description: Notion 🗓️ 단계별 학습 계획의 학습단위
+      options:
+        - 01단계 · 개발 환경·Python·HTTP 기초
+        - 02단계 · 가장 단순한 RAG
+        - 03단계
+        - 04단계
+        - 05단계
+        - 06단계
+        - 07단계
+        - 08단계
+        - 09단계
+        - 10단계
+        - 11단계
+        - 12단계
+        - 13단계
+        - 14단계
+        - 15단계
+        - 16단계
+        - 17단계
+        - 18단계
+        - 19단계
+        - 20단계
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 작업 유형
+      description: 학습 사이클 Learn → Build → Experiment → Measure → Document
+      multiple: true
+      options:
+        - Learn (개념 학습)
+        - Build (실습·구현)
+        - Experiment / Measure (비교 실험·측정)
+        - Document (개념 노트·실험 노트·README)
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 목표
+      description: 오늘 끝나면 무엇을 설명하거나 할 수 있게 되는가?
+      placeholder: 예) httpx.Client 재사용이 왜 빠른지 latency 측정값으로 설명할 수 있다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: 할 일
+      description: 체크박스로 적는다. 하루 안에 끝낼 수 있는 크기로 나눈다.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 기준
+      description: 통과하면 더 다듬지 않고 닫는다. 남은 아이디어는 새 이슈로 옮긴다.
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: concepts
+    attributes:
+      label: 관련 개념·자료
+      description: 개념 지도 항목, Notion 페이지, 문서 링크
+      placeholder: 예) 02. 가상환경·패키지 관리(uv, pip), httpx Quickstart
+
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: 예상 시간
+      options:
+        - 30분 이하
+        - 1시간
+        - 2시간
+        - 3시간 이상 (쪼갤 수 있는지 다시 확인)

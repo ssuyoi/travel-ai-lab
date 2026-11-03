@@ -1,0 +1,61 @@
+name: 🧪 비교 실험
+description: A vs B 비교 실험. 비교 대상 2–3개, 1–3일 안에 결론을 낸다.
+title: "[EXP] "
+labels: ["experiment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        결과는 `docs/experiments/`의 Experiment Note로 남기고, PR에서 이 이슈를 닫는다.
+        한 번에 한 변수만 바꾸고, 데이터셋·나머지 설정은 고정한다.
+
+  - type: input
+    id: unit
+    attributes:
+      label: 학습단위
+      placeholder: 예) 01단계
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: 해결하려는 사용자/시스템 문제와 현재 baseline
+    validations:
+      required: true
+
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis
+      value: "[변경]을 하면 [지표]가 [방향]으로 변할 것이다. 이유는 [근거]다."
+    validations:
+      required: true
+
+  - type: textarea
+    id: variants
+    attributes:
+      label: 비교 대상과 고정 변수
+      value: |
+        - A (대조군):
+        - B (실험군):
+        - 고정 변수: 데이터셋 / 모델 / 프롬프트 버전 / 반복 횟수
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: metrics
+    attributes:
+      label: 측정 축
+      description: 품질 · 속도 · 비용을 한 표에 적는다. 평균 대신 p50·p95, 작은 셋은 95% 신뢰구간.
+      options:
+        - label: 품질 (Recall@k, MRR, 정확성, 근거성 등)
+        - label: 속도 (p50/p95 latency, TTFT)
+        - label: 비용 (토큰 수, 요청당 비용)
+
+  - type: input
+    id: budget
+    attributes:
+      label: 예상 비용과 상한
+      placeholder: 예) 예상 $0.20, 상한 $1

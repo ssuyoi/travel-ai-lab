@@ -1,0 +1,33 @@
+name: 🐛 버그·막힘
+description: 스크립트 오류나 30분 이상 막힌 문제
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 문제
+      description: 무엇을 하려다가 무엇이 일어났는가?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 방법
+      placeholder: uv run python scripts/fetch_tour_detail.py 126128
+      render: bash
+
+  - type: textarea
+    id: error
+    attributes:
+      label: 에러 메시지·로그
+      description: API 키 같은 비밀 값은 지우고 붙인다.
+      render: text
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: 시도한 것
+      value: |
+        -

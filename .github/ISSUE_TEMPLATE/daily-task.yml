@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         제목 형식: `[주차 코드] 한 줄 요약` (예: `[W00] latency.csv에 워밍업 측정 추가`)
-        브랜치 이름: `<type>/<이슈번호>-<요약>` (예: `feat/12-latency-warmup`)
+        브랜치 이름: `<type>/<이슈번호>-<요약>`, type은 `feat`·`fix`·`docs`·`chore` (예: `feat/12-latency-warmup`)
 
   - type: dropdown
     id: unit

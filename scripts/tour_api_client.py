@@ -15,7 +15,8 @@ LOG_DIR = ROOT / "logs"
 LATENCY_CSV = LOG_DIR / "latency.csv"
 LATENCY_FIELDS = ["timestamp", "operation", "status_code", "result_code", "elapsed_ms"]
 
-RAW_DIR = ROOT / "data" / "raw" / "tour_api"
+RAW_DIR = ROOT / "data" / "raw"
+TOUR_DIR = RAW_DIR / "tour_api"
 
 BASE_URL = "https://apis.data.go.kr/B551011/KorService2"
 

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 import httpx
-from tour_api_client import RAW_DIR, call_api
+from tour_api_client import TOUR_DIR, call_api
 
 
 def fetch_tour_detail(client: httpx.Client, content_id: str) -> dict:
@@ -32,7 +32,7 @@ def main() -> None:
     with httpx.Client(timeout=10.0) as client:
         content_id = args.content_id
         item = fetch_tour_detail(client, content_id)
-    save_json(item, RAW_DIR / "detail_common" / f"{content_id}.json")
+    save_json(item, TOUR_DIR / "detail_common" / f"{content_id}.json")
     print(f"{content_id} 상세 정보 저장")
 
 

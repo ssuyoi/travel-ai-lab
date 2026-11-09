@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import httpx
-from tour_api_client import RAW_DIR, call_api, save_csv
+from tour_api_client import TOUR_DIR, call_api, save_csv
 
 CODE_FIELDS = ["lDongRegnCd", "lDongRegnNm", "lDongSignguCd", "lDongSignguNm"]
 
@@ -36,7 +36,7 @@ def fetch_ldong_codes(client: httpx.Client) -> list[dict]:
 def main() -> None:
     with httpx.Client(timeout=10.0) as client:  # Client 재사용 (실험·측정 항목과 연결)
         rows = fetch_ldong_codes(client)
-    save_csv(rows, RAW_DIR / "ldong_codes.csv", CODE_FIELDS)
+    save_csv(rows, TOUR_DIR / "ldong_codes.csv", CODE_FIELDS)
     print(f"{len(rows)}건 저장")
 
 

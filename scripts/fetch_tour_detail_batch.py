@@ -6,13 +6,14 @@ from pathlib import Path
 
 import httpx
 from fetch_tour_detail import fetch_tour_detail, save_json
-from tour_api_client import RAW_DIR
+from tour_api_client import TOUR_DIR
 
-CONTENT_PATH = RAW_DIR / "area_based_list_2026-10-27.csv"
+CONTENT_PATH = TOUR_DIR / "area_based_list_2026-10-27.csv"
+DETAIL_DIR = TOUR_DIR / "detail_common"
 
 
 def load_or_fetch_detail(client: httpx.Client, content_id: str) -> dict:
-    file = RAW_DIR / "detail_common" / f"{content_id}.json"
+    file = DETAIL_DIR / f"{content_id}.json"
 
     if os.path.exists(file):
         with file.open(encoding="utf-8") as f:

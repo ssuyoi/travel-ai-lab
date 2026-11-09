@@ -2,7 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import httpx
-from tour_api_client import RAW_DIR, call_api, save_csv
+from tour_api_client import TOUR_DIR, call_api, save_csv
 
 JEJU_REGN_CODE = "50"
 JEJU_SIGNGU_CODE = "110"
@@ -46,7 +46,7 @@ def main() -> None:
         rows = fetch_tour_api(client)
     # raw에는 응답 필드를 모두 남긴다. 열 순서는 처음 등장한 순서
     field_names = list(dict.fromkeys(key for row in rows for key in row))
-    save_csv(rows, RAW_DIR / filename, field_names)
+    save_csv(rows, TOUR_DIR / filename, field_names)
     print(f"{len(rows)}건 저장")
 
 

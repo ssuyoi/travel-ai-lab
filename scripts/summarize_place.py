@@ -6,7 +6,7 @@ import time
 import anthropic
 from anthropic.types.beta import BetaMessage
 from dotenv import load_dotenv
-from tour_api_client import RAW_DIR, log_latency
+from tour_api_client import TOUR_DIR, log_latency
 
 MODEL = "claude-sonnet-5-5"
 SYSTEM_PROMPT = "너는 여행 안내 문구를 쓰는 편집자다. 3문장 이내, 존댓말로 적는다."
@@ -18,7 +18,7 @@ if not LLM_API_KEY:
 
 
 def load_overview(content_id: str) -> str:
-    path = RAW_DIR / "detail_common" / f"{content_id}.json"
+    path = TOUR_DIR / "detail_common" / f"{content_id}.json"
     if not path.exists():
         raise SystemExit(
             f"{path} 파일이 없습니다. 먼저 실행: "
